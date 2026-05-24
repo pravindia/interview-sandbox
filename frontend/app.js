@@ -62,6 +62,11 @@ function setNotice(message) {
   noticeEl.textContent = message;
 }
 
+function confirmIfDirty() {
+  if (!state.dirty) return true;
+  return window.confirm('You have unsaved changes. Leave this draft without saving?');
+}
+
 function setLoading(loading, label = 'Idle') {
   state.loading = loading;
   syncBadgeEl.textContent = label;
@@ -146,6 +151,10 @@ async function loadPages() {
 
 async function openPage(pageId) {
   if (!pageId) return;
+  if (pageId !== state.selectedPageId && !confirmIfDirty()) {
+    setNotice('Stayed on current draft. Save changes before switching pages.');
+    return;
+  }
   setLoading(true, 'Loading page…');
   try {
     const data = await api(`/api/pages/${pageId}`);
@@ -164,6 +173,10 @@ async function openPage(pageId) {
 }
 
 async function selectOffer(offerId) {
+  if (offerId !== state.selectedOfferId && !confirmIfDirty()) {
+    setNotice('Stayed on current offer. Save changes before switching offers.');
+    return;
+  }
   state.selectedOfferId = offerId;
   localStorage.setItem(ACTIVE_OFFER_KEY, offerId);
   setLoading(true, 'Loading pages…');
@@ -270,6 +283,12 @@ notesInputEl.addEventListener('input', (event) => {
 generateBtnEl.addEventListener('click', generatePage);
 saveBtnEl.addEventListener('click', savePage);
 copyBtnEl.addEventListener('click', copyHtml);
+
+window.addEventListener('beforeunload', (event) => {
+  if (!state.dirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 
 async function init() {
   setLoading(true, 'Booting…');
