@@ -202,13 +202,18 @@ async function generatePage() {
       }),
     });
 
-    state.selectedPageId = data.page.id;
-    state.workingPage = data.page;
-    state.previewHtml = data.page.html || '';
-    state.notes = data.page.promptNotes || state.notes;
+    const page = data.draft;
+    if (!page) {
+      throw new Error('Invalid generate response');
+    }
+
+    state.selectedPageId = page.id;
+    state.workingPage = page;
+    state.previewHtml = page.html || '';
+    state.notes = page.promptNotes || state.notes;
     state.dirty = true;
     draftStatusEl.textContent = 'Generated draft';
-    setNotice(`Generated draft for ${data.page.name}.`);
+    setNotice(`Generated draft for ${page.name}.`);
     renderWorkingState();
   } catch (error) {
     setNotice(`Generate failed: ${error.message}`);
@@ -224,8 +229,8 @@ async function savePage() {
     const data = await api(`/api/pages/${state.workingPage.id}/save`, {
       method: 'POST',
       body: JSON.stringify({
-        content: state.previewHtml,
-        notes: state.notes,
+        html: state.previewHtml,
+        promptNotes: state.notes,
       }),
     });
 
