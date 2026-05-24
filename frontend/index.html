@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LaunchFlow Sandbox</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="eyebrow">Candidate Sandbox</div>
+          <h1>LaunchFlow</h1>
+          <p>AI landing-page builder for offer-scoped funnels</p>
+        </div>
+        <section class="panel">
+          <div class="panel-title">Offers</div>
+          <div id="offerList" class="offer-list"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-title-row">
+            <div class="panel-title">Saved Pages</div>
+            <span id="pageCount" class="page-count">0</span>
+          </div>
+          <div id="pageList" class="page-list"></div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Selected Offer</div>
+            <h2 id="offerHeading">Loading…</h2>
+            <p id="offerMeta" class="subline"></p>
+          </div>
+          <div class="status-row">
+            <span id="syncBadge" class="badge">Idle</span>
+            <span id="dirtyBadge" class="badge badge-muted">No local draft edits</span>
+          </div>
+        </header>
+
+        <section class="workspace">
+          <div class="builder-column">
+            <div class="editor-card">
+              <div class="editor-header">
+                <div>
+                  <div class="eyebrow">Build Slice</div>
+                  <h3 id="pageHeading">Generate a landing page</h3>
+                </div>
+                <div class="actions">
+                  <button id="generateBtn" type="button">Generate Landing Page</button>
+                  <button id="saveBtn" type="button" class="primary">Save Page</button>
+                  <button id="copyBtn" type="button">Copy HTML</button>
+                </div>
+              </div>
+
+              <label class="field">
+                <span class="field-label">Page angle / hook notes</span>
+                <textarea
+                  id="notesInput"
+                  class="notes-input"
+                  placeholder="Example: Premium direct-response landing page for service founders who need stronger positioning and cleaner conversion."
+                ></textarea>
+              </label>
+
+              <div class="code-card">
+                <div class="panel-title-row">
+                  <div class="panel-title">HTML Snapshot</div>
+                  <span id="draftStatus" class="page-count">No draft yet</span>
+                </div>
+                <pre id="htmlSnippet" class="html-snippet">Generate a page to inspect the HTML snapshot.</pre>
+              </div>
+            </div>
+
+            <div id="notice" class="notice">Ready.</div>
+          </div>
+
+          <div class="preview-column">
+            <div class="preview-card">
+              <div class="preview-header">
+                <div class="preview-title">Live Preview</div>
+                <div class="preview-subtitle">Member-facing output quality matters.</div>
+              </div>
+              <iframe id="previewFrame" class="preview-frame" title="LaunchFlow preview"></iframe>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
