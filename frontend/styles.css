@@ -39,7 +39,7 @@ body {
 
 .sidebar-header h1,
 .topbar h2,
-.editor-header h3 {
+.composer-header h3 {
   margin: 0;
 }
 
@@ -59,7 +59,7 @@ body {
 }
 
 .panel,
-.editor-card,
+.composer-card,
 .preview-card,
 .code-card {
   border: 1px solid var(--line);
@@ -85,6 +85,12 @@ body {
   margin-top: 14px;
 }
 
+.page-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
 .offer-item,
 .page-item {
   width: 100%;
@@ -110,6 +116,38 @@ body {
   margin-top: 4px;
 }
 
+.offer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.offer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+.page-delete-btn {
+  border-color: rgba(245, 91, 103, 0.35);
+  background: rgba(245, 91, 103, 0.12);
+  color: #ffd6da;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 10px;
+}
+
+.page-delete-btn:hover {
+  background: rgba(245, 91, 103, 0.2);
+}
+
+.page-delete-btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
 .main {
   padding: 24px;
 }
@@ -119,11 +157,12 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   gap: 18px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .status-row,
-.actions,
+.composer-actions,
+.preview-actions,
 .panel-title-row {
   display: flex;
   gap: 10px;
@@ -147,43 +186,47 @@ body {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(420px, 520px) 1fr;
-  gap: 20px;
-}
-
-.builder-column,
-.preview-column {
-  min-height: 680px;
-}
-
-.editor-card,
-.preview-card {
-  padding: 18px;
-  min-height: 640px;
-}
-
-.editor-card {
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 16px;
+  grid-template-rows: minmax(420px, 1fr) auto auto;
+    gap: 14px;
+    min-height: calc(100vh - 126px);
 }
 
 .preview-card {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 14px;
+  padding: 18px;
+  min-height: 0;
 }
 
-.editor-header {
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preview-actions {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.composer-card {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.composer-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 12px;
+    align-items: center;
 }
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field-label {
@@ -191,19 +234,29 @@ body {
   font-weight: 700;
 }
 
+.notes-composer {
+  position: relative;
+}
 .notes-input {
   width: 100%;
-  min-height: 150px;
+  min-height: 96px;
+    max-height: 180px;
   resize: vertical;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: #0b141d;
   color: var(--text);
-  padding: 16px;
+  padding: 16px 16px 68px;
   font: inherit;
   line-height: 1.6;
 }
 
+.notes-composer .composer-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  gap: 8px;
+}
 .code-card {
   padding: 16px;
   background: #0b141d;
@@ -222,12 +275,16 @@ body {
 
 .preview-frame {
   width: 100%;
-  min-height: 560px;
+  height: 100%;
+    min-height: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: white;
 }
 
+.composer-actions {
+  justify-content: flex-end;
+}
 button {
   border: 1px solid var(--line);
   background: #162434;
@@ -252,16 +309,18 @@ button:disabled {
 
 .notice {
   border-top: 1px solid var(--line);
-  padding-top: 12px;
+  padding-top: 10px;
   color: var(--muted);
   font-size: 14px;
-  margin-top: 12px;
+  margin-top: 2px;
 }
 
 @media (max-width: 1100px) {
-  .app-shell,
-  .workspace {
+  .app-shell {
     grid-template-columns: 1fr;
+  .workspace {
+      grid-template-rows: minmax(380px, 1fr) auto auto;
+      min-height: auto;
   }
 
   .sidebar {
@@ -270,8 +329,17 @@ button:disabled {
   }
 
   .topbar,
-  .editor-header {
+                                .composer-header {
     flex-direction: column;
     align-items: flex-start;
   }
+.preview-header {
+  flex-wrap: wrap;
+}
+
+.notes-composer .composer-actions {
+  left: 10px;
+  right: 10px;
+  justify-content: flex-end;
+}
 }

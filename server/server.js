@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { generateDraft, getPage, listOffers, listPages, savePage } from './store.js';
+import { deletePage, generateDraft, getPage, listOffers, listPages, savePage } from './store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -90,6 +90,12 @@ const server = createServer(async (request, response) => {
     if (result?.error === 'invalid_html') return sendJson(response, 400, { error: 'invalid_html' });
     if (result?.error === 'offer_not_found') return sendJson(response, 404, { error: 'offer_not_found' });
     return sendJson(response, 200, result);
+  }
+
+  if (pageMatch && request.method === 'DELETE' && pageMatch.action === 'detail') {
+    const page = deletePage(pageMatch.pageId);
+    if (!page) return sendJson(response, 200, { page: null, deleted: false });
+    return sendJson(response, 200, { page, deleted: true });
   }
 
   const offerMatch = matchOfferAction(pathname);

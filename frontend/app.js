@@ -20,14 +20,15 @@ const offerHeadingEl = document.getElementById('offerHeading');
 const offerMetaEl = document.getElementById('offerMeta');
 const pageHeadingEl = document.getElementById('pageHeading');
 const pageCountEl = document.getElementById('pageCount');
+const generateFormEl = document.getElementById('generateForm');
 const notesInputEl = document.getElementById('notesInput');
-const htmlSnippetEl = document.getElementById('htmlSnippet');
 const draftStatusEl = document.getElementById('draftStatus');
 const previewFrameEl = document.getElementById('previewFrame');
 const noticeEl = document.getElementById('notice');
 const saveBtnEl = document.getElementById('saveBtn');
 const generateBtnEl = document.getElementById('generateBtn');
 const copyBtnEl = document.getElementById('copyBtn');
+const visitBtnEl = document.getElementById('visitBtn');
 const syncBadgeEl = document.getElementById('syncBadge');
 const dirtyBadgeEl = document.getElementById('dirtyBadge');
 
@@ -38,7 +39,9 @@ async function api(path, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const error = new Error(`Request failed: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -55,6 +58,14 @@ function readLastOpenPages() {
 function writeLastOpenPage(offerId, pageId) {
   const current = readLastOpenPages();
   current[offerId] = pageId;
+  localStorage.setItem(LAST_OPEN_PAGE_KEY, JSON.stringify(current));
+}
+
+function removeLastOpenPage(offerId, pageId) {
+  const current = readLastOpenPages();
+  if (!current[offerId]) return;
+  if (pageId && current[offerId] !== pageId) return;
+  delete current[offerId];
   localStorage.setItem(LAST_OPEN_PAGE_KEY, JSON.stringify(current));
 }
 
@@ -105,6 +116,30 @@ function getSidebarPageTitle(page) {
   return 'Draft note';
 }
 
+function formatRelativeUpdatedAt(value) {
+  const updatedAt = new Date(value);
+  if (Number.isNaN(updatedAt.getTime())) return 'updated recently';
+
+  const diffMs = updatedAt.getTime() - Date.now();
+  const absDiffMs = Math.abs(diffMs);
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  if (absDiffMs < hourMs) {
+    return rtf.format(Math.round(diffMs / minuteMs), 'minute');
+  }
+  if (absDiffMs < dayMs) {
+    return rtf.format(Math.round(diffMs / hourMs), 'hour');
+  }
+  if (absDiffMs < 30 * dayMs) {
+    return rtf.format(Math.round(diffMs / dayMs), 'day');
+  }
+
+  return updatedAt.toLocaleString();
+}
+
 function confirmIfDirty() {
   if (!state.dirty) return true;
   return window.confirm('You have unsaved changes. Leave this draft without saving?');
@@ -116,6 +151,7 @@ function setLoading(loading, label = 'Idle') {
   generateBtnEl.disabled = loading || !state.selectedOfferId;
   saveBtnEl.disabled = loading || !state.workingPage;
   copyBtnEl.disabled = !state.previewHtml;
+  visitBtnEl.disabled = !state.previewHtml;
 }
 
 function updateDirtyBadge() {
@@ -125,18 +161,21 @@ function updateDirtyBadge() {
 
 function renderPreview() {
   previewFrameEl.srcdoc = state.previewHtml || EMPTY_PREVIEW;
-  htmlSnippetEl.textContent = state.previewHtml || 'Generate a page to inspect the HTML snapshot.';
 }
 
 function renderOffers() {
   offerListEl.innerHTML = '';
   state.offers.forEach((offer) => {
+    const offerIcon = typeof offer.icon === 'string' && offer.icon.trim() ? offer.icon.trim() : '⭐';
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `offer-item${offer.id === state.selectedOfferId ? ' active' : ''}`;
     button.innerHTML = `
-      <strong>${offer.name}</strong>
-      <small>${offer.angle}</small>
+      <strong class="offer-title">
+        <span class="offer-icon" aria-hidden="true">${escapeText(offerIcon)}</span>
+        <span>${escapeText(offer.name)}</span>
+      </strong>
+      <small>${escapeText(offer.angle)}</small>
     `;
     button.addEventListener('click', () => selectOffer(offer.id));
     offerListEl.appendChild(button);
@@ -154,15 +193,31 @@ function renderPages() {
 
   state.pages.forEach((page) => {
     const sidebarTitle = getSidebarPageTitle(page);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `page-item${page.id === state.selectedPageId ? ' active' : ''}`;
-    button.innerHTML = `
+    const updatedLabel = formatRelativeUpdatedAt(page.updatedAt);
+    const row = document.createElement('div');
+    row.className = 'page-row';
+
+    const openButton = document.createElement('button');
+    openButton.type = 'button';
+    openButton.className = `page-item${page.id === state.selectedPageId ? ' active' : ''}`;
+    openButton.innerHTML = `
       <strong>${escapeText(sidebarTitle)}</strong>
-      <small>${page.pageType} · updated ${new Date(page.updatedAt).toLocaleDateString()}</small>
+      <small>${page.pageType} · updated ${escapeText(updatedLabel)}</small>
     `;
-    button.addEventListener('click', () => openPage(page.id));
-    pageListEl.appendChild(button);
+    openButton.title = `Updated ${new Date(page.updatedAt).toLocaleString()}`;
+    openButton.addEventListener('click', () => openPage(page.id));
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'page-delete-btn';
+    deleteButton.innerHTML = '<span class="material-symbols-outlined" data-icon="delete">delete</span>';
+    deleteButton.setAttribute('aria-label', `Delete ${sidebarTitle}`);
+    deleteButton.title = `Delete ${sidebarTitle}`;
+    deleteButton.addEventListener('click', () => deletePageById(page.id));
+
+    row.appendChild(openButton);
+    row.appendChild(deleteButton);
+    pageListEl.appendChild(row);
   });
 }
 
@@ -211,6 +266,22 @@ async function openPage(pageId) {
     setNotice(`Opened ${data.page.name}.`);
     renderPages();
     renderWorkingState();
+  } catch (error) {
+    if (error.status === 404) {
+      removeLastOpenPage(state.selectedOfferId, pageId);
+      state.selectedPageId = null;
+      state.workingPage = null;
+      state.notes = '';
+      state.previewHtml = '';
+      state.dirty = false;
+      setNotice('That page is no longer available. It may have been a draft or deleted page.');
+      await loadPages();
+      renderPages();
+      renderWorkingState();
+      return;
+    }
+
+    setNotice(`Load failed: ${error.message}`);
   } finally {
     setLoading(false);
   }
@@ -308,6 +379,59 @@ async function savePage() {
   }
 }
 
+async function deletePageById(pageId) {
+  if (!pageId) return;
+
+  const page = state.pages.find((item) => item.id === pageId);
+  const title = page ? getSidebarPageTitle(page) : 'this page';
+  const confirmed = window.confirm(`Delete ${title}? This cannot be undone.`);
+  if (!confirmed) return;
+
+  setLoading(true, 'Deleting…');
+  try {
+    const data = await api(`/api/pages/${pageId}`, { method: 'DELETE' });
+
+    const deletingActivePage = state.selectedPageId === pageId;
+    if (deletingActivePage) {
+      state.selectedPageId = null;
+      state.workingPage = null;
+      state.notes = '';
+      state.previewHtml = '';
+      state.dirty = false;
+      removeLastOpenPage(state.selectedOfferId, pageId);
+    }
+
+    await loadPages();
+    if (data?.deleted) {
+      setNotice(`Deleted ${title}.`);
+    } else {
+      removeLastOpenPage(state.selectedOfferId, pageId);
+      setNotice(`${title} was already removed.`);
+    }
+    renderPages();
+    renderWorkingState();
+  } catch (error) {
+    if (error.status === 404) {
+      if (state.selectedPageId === pageId) {
+        state.selectedPageId = null;
+        state.workingPage = null;
+        state.notes = '';
+        state.previewHtml = '';
+        state.dirty = false;
+      }
+      removeLastOpenPage(state.selectedOfferId, pageId);
+      await loadPages();
+      renderPages();
+      renderWorkingState();
+      setNotice(`${title} was already removed.`);
+      return;
+    }
+    setNotice(`Delete failed: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
 async function copyHtml() {
   if (!state.previewHtml) return;
   try {
@@ -318,15 +442,40 @@ async function copyHtml() {
   }
 }
 
+function visitPreview() {
+  if (!state.previewHtml) return;
+
+  const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+  if (!previewWindow) {
+    setNotice('Visit blocked by browser popup settings.');
+    return;
+  }
+
+  previewWindow.document.open();
+  previewWindow.document.write(state.previewHtml);
+  previewWindow.document.close();
+  setNotice('Opened preview in a new tab.');
+}
+
 notesInputEl.addEventListener('input', (event) => {
   state.notes = event.target.value;
   state.dirty = true;
   updateDirtyBadge();
 });
 
-generateBtnEl.addEventListener('click', generatePage);
+notesInputEl.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)) return;
+  event.preventDefault();
+  generateFormEl.requestSubmit();
+});
+
+generateFormEl.addEventListener('submit', (event) => {
+  event.preventDefault();
+  generatePage();
+});
 saveBtnEl.addEventListener('click', savePage);
 copyBtnEl.addEventListener('click', copyHtml);
+visitBtnEl.addEventListener('click', visitPreview);
 
 window.addEventListener('beforeunload', (event) => {
   if (!state.dirty) return;

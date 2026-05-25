@@ -1,41 +1,4 @@
-const offers = [
-  {
-    id: 'offer_founder_sprint',
-    name: 'Founder Sprint',
-    angle: 'Premium positioning for service founders',
-    audience: 'Service businesses',
-  },
-  {
-    id: 'offer_webinar_system',
-    name: 'Webinar System',
-    angle: 'Convert webinar registrants into buyers',
-    audience: 'Coaches and consultants',
-  },
-  {
-    id: 'offer_retention_stack',
-    name: 'Retention Stack',
-    angle: 'Turn existing customers into repeat buyers',
-    audience: 'Membership and education brands',
-  },
-];
-
-const pages = [
-  {
-    id: 'page_founder_lp_01',
-    offerId: 'offer_founder_sprint',
-    name: 'Founder Sprint Landing Page',
-    pageType: 'landing',
-    promptNotes: 'Premium, direct-response tone with strong authority.',
-    html: buildLandingPageHtml({
-      offerName: 'Founder Sprint',
-      audience: 'Service founders',
-      angle: 'Turn scattered expertise into a premium advisory offer',
-      notes: 'Premium, direct-response tone with strong authority.',
-    }),
-    updatedAt: '2026-05-20T09:15:00.000Z',
-  },
-];
-
+import { offers, pages } from '../data/data.js';
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -66,7 +29,7 @@ function promptTitleFromNotes(notes) {
     .trim();
 }
 
-function buildLandingPageHtml({ offerName, audience, angle, notes }) {
+export function buildLandingPageHtml({ offerName, audience, angle, notes }) {
   const safeOffer = escapeHtml(offerName);
   const safeAudience = escapeHtml(audience);
   const safeAngle = escapeHtml(angle);
@@ -152,6 +115,13 @@ export function listPages({ offerId } = {}) {
 export function getPage(pageId) {
   const page = pages.find((item) => item.id === pageId);
   return page ? clone(page) : null;
+}
+
+export function deletePage(pageId) {
+  const index = pages.findIndex((item) => item.id === pageId);
+  if (index < 0) return null;
+  const [removed] = pages.splice(index, 1);
+  return clone(removed);
 }
 
 export function generateDraft(offerId, { pageType, notes }) {
