@@ -31,6 +31,7 @@ const copyBtnEl = document.getElementById('copyBtn');
 const visitBtnEl = document.getElementById('visitBtn');
 const syncBadgeEl = document.getElementById('syncBadge');
 const dirtyBadgeEl = document.getElementById('dirtyBadge');
+let toastTimerId = null;
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -69,8 +70,26 @@ function removeLastOpenPage(offerId, pageId) {
   localStorage.setItem(LAST_OPEN_PAGE_KEY, JSON.stringify(current));
 }
 
-function setNotice(message) {
+function setNotice(message, type = 'info') {
+  const safeType = ['info', 'success', 'error', 'warning'].includes(type)
+    ? type
+    : 'info';
+
+  if (toastTimerId) {
+    window.clearTimeout(toastTimerId);
+    toastTimerId = null;
+  }
+
   noticeEl.textContent = message;
+  noticeEl.className = `notice notice-toast notice-${safeType} notice-visible`;
+  noticeEl.setAttribute('role', safeType === 'error' ? 'alert' : 'status');
+  noticeEl.setAttribute('aria-live', safeType === 'error' ? 'assertive' : 'polite');
+
+  toastTimerId = window.setTimeout(() => {
+    noticeEl.classList.remove('notice-visible');
+    noticeEl.classList.add('notice-hidden');
+    toastTimerId = null;
+  }, 3000);
 }
 
 function escapeText(value) {
@@ -187,7 +206,7 @@ function renderPages() {
   pageCountEl.textContent = `${state.pages.length} pages`;
 
   if (!state.pages.length) {
-    pageListEl.innerHTML = '<div class="notice">No saved pages for this offer yet.</div>';
+    pageListEl.innerHTML = '<div class="page-list-empty">No saved pages for this offer yet.</div>';
     return;
   }
 
@@ -251,7 +270,7 @@ async function loadPages() {
 async function openPage(pageId) {
   if (!pageId) return;
   if (pageId !== state.selectedPageId && !confirmIfDirty()) {
-    setNotice('Stayed on current draft. Save changes before switching pages.');
+    setNotice('Stayed on current draft. Save changes before switching pages.', 'warning');
     return;
   }
   setLoading(true, 'Loading page…');
@@ -263,7 +282,7 @@ async function openPage(pageId) {
     state.previewHtml = data.page.html || '';
     state.dirty = false;
     writeLastOpenPage(state.selectedOfferId, pageId);
-    setNotice(`Opened ${data.page.name}.`);
+    setNotice(`Opened ${data.page.name}.`, 'success');
     renderPages();
     renderWorkingState();
   } catch (error) {
@@ -274,14 +293,14 @@ async function openPage(pageId) {
       state.notes = '';
       state.previewHtml = '';
       state.dirty = false;
-      setNotice('That page is no longer available. It may have been a draft or deleted page.');
+      setNotice('That page is no longer available. It may have been a draft or deleted page.', 'warning');
       await loadPages();
       renderPages();
       renderWorkingState();
       return;
     }
 
-    setNotice(`Load failed: ${error.message}`);
+    setNotice(`Load failed: ${error.message}`, 'error');
   } finally {
     setLoading(false);
   }
@@ -289,7 +308,7 @@ async function openPage(pageId) {
 
 async function selectOffer(offerId) {
   if (offerId !== state.selectedOfferId && !confirmIfDirty()) {
-    setNotice('Stayed on current offer. Save changes before switching offers.');
+    setNotice('Stayed on current offer. Save changes before switching offers.', 'warning');
     return;
   }
   state.selectedOfferId = offerId;
@@ -311,7 +330,7 @@ async function selectOffer(offerId) {
     if (rememberedPageId) {
       await openPage(rememberedPageId);
     } else {
-      setNotice('Ready to generate a landing page for this offer.');
+      setNotice('Ready to generate a landing page for this offer.', 'info');
     }
   } finally {
     setLoading(false);
@@ -341,10 +360,10 @@ async function generatePage() {
     state.notes = page.promptNotes || state.notes;
     state.dirty = true;
     draftStatusEl.textContent = 'Generated draft';
-    setNotice(`Generated draft for ${page.name}.`);
+    setNotice(`Generated draft for ${page.name}.`, 'success');
     renderWorkingState();
   } catch (error) {
-    setNotice(`Generate failed: ${error.message}`);
+    setNotice(`Generate failed: ${error.message}`, 'error');
   } finally {
     setLoading(false);
   }
@@ -369,11 +388,11 @@ async function savePage() {
     state.dirty = false;
     writeLastOpenPage(state.selectedOfferId, data.page.id);
     await loadPages();
-    setNotice(`Saved ${data.page.name}.`);
+    setNotice(`Saved ${data.page.name}.`, 'success');
     renderPages();
     renderWorkingState();
   } catch (error) {
-    setNotice(`Save failed: ${error.message}`);
+    setNotice(`Save failed: ${error.message}`, 'error');
   } finally {
     setLoading(false);
   }
@@ -403,10 +422,10 @@ async function deletePageById(pageId) {
 
     await loadPages();
     if (data?.deleted) {
-      setNotice(`Deleted ${title}.`);
+      setNotice(`Deleted ${title}.`, 'success');
     } else {
       removeLastOpenPage(state.selectedOfferId, pageId);
-      setNotice(`${title} was already removed.`);
+      setNotice(`${title} was already removed.`, 'warning');
     }
     renderPages();
     renderWorkingState();
@@ -423,10 +442,10 @@ async function deletePageById(pageId) {
       await loadPages();
       renderPages();
       renderWorkingState();
-      setNotice(`${title} was already removed.`);
+      setNotice(`${title} was already removed.`, 'warning');
       return;
     }
-    setNotice(`Delete failed: ${error.message}`);
+    setNotice(`Delete failed: ${error.message}`, 'error');
   } finally {
     setLoading(false);
   }
@@ -436,9 +455,9 @@ async function copyHtml() {
   if (!state.previewHtml) return;
   try {
     await navigator.clipboard.writeText(state.previewHtml);
-    setNotice('Copied HTML to clipboard.');
+    setNotice('Copied HTML to clipboard.', 'success');
   } catch (error) {
-    setNotice(`Copy failed: ${error.message}`);
+    setNotice(`Copy failed: ${error.message}`, 'error');
   }
 }
 
@@ -451,13 +470,13 @@ function visitPreview() {
 
   if (!previewWindow) {
     URL.revokeObjectURL(previewUrl);
-    setNotice('Visit blocked by browser popup settings.');
+    setNotice('Visit blocked by browser popup settings.', 'warning');
     return;
   }
 
   // Revoke after open so the browser can finish loading the blob document.
   window.setTimeout(() => URL.revokeObjectURL(previewUrl), 30000);
-  setNotice('Opened preview in a new tab.');
+  setNotice('Opened preview in a new tab.', 'success');
 }
 
 notesInputEl.addEventListener('input', (event) => {
@@ -493,7 +512,7 @@ async function init() {
     renderOffers();
     await selectOffer(state.selectedOfferId);
   } catch (error) {
-    setNotice(`Failed to load app: ${error.message}`);
+    setNotice(`Failed to load app: ${error.message}`, 'error');
   } finally {
     setLoading(false);
   }
