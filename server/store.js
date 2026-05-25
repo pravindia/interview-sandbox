@@ -49,6 +49,23 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function promptTitleFromNotes(notes) {
+  if (typeof notes !== 'string') return '';
+  const firstLine = notes
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (!firstLine) return '';
+
+  return firstLine
+    .replace(/^#+\s*/, '')
+    .replace(/^[-*]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildLandingPageHtml({ offerName, audience, angle, notes }) {
   const safeOffer = escapeHtml(offerName);
   const safeAudience = escapeHtml(audience);
@@ -118,11 +135,13 @@ export function listOffers() {
 export function listPages({ offerId } = {}) {
   const summaries = pages
     .filter((page) => !offerId || page.offerId === offerId)
-    .map(({ id, offerId: currentOfferId, name, pageType, updatedAt }) => ({
+    .map(({ id, offerId: currentOfferId, name, pageType, promptNotes, updatedAt }) => ({
       id,
       offerId: currentOfferId,
       name,
       pageType,
+      promptTitle: promptTitleFromNotes(promptNotes),
+      promptNotes,
       updatedAt,
     }))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));

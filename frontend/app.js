@@ -62,6 +62,49 @@ function setNotice(message) {
   noticeEl.textContent = message;
 }
 
+function escapeText(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function cleanTitle(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function titleFromDraftNote(notes) {
+  if (typeof notes !== 'string') return '';
+  const firstLine = notes
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  if (!firstLine) return '';
+
+  return cleanTitle(
+    firstLine
+      .replace(/^#+\s*/, '')
+      .replace(/^[-*]\s+/, '')
+      .replace(/^\d+\.\s+/, ''),
+  );
+}
+
+function getSidebarPageTitle(page) {
+  const promptTitle = cleanTitle(page?.promptTitle);
+  if (promptTitle) return promptTitle;
+
+  const draftNoteTitle = titleFromDraftNote(page?.promptNotes);
+  if (draftNoteTitle) return draftNoteTitle;
+
+  const pageName = cleanTitle(page?.name);
+  if (pageName) return pageName;
+
+  return 'Draft note';
+}
+
 function confirmIfDirty() {
   if (!state.dirty) return true;
   return window.confirm('You have unsaved changes. Leave this draft without saving?');
@@ -110,11 +153,12 @@ function renderPages() {
   }
 
   state.pages.forEach((page) => {
+    const sidebarTitle = getSidebarPageTitle(page);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `page-item${page.id === state.selectedPageId ? ' active' : ''}`;
     button.innerHTML = `
-      <strong>${page.name}</strong>
+      <strong>${escapeText(sidebarTitle)}</strong>
       <small>${page.pageType} · updated ${new Date(page.updatedAt).toLocaleDateString()}</small>
     `;
     button.addEventListener('click', () => openPage(page.id));
@@ -126,7 +170,7 @@ function renderWorkingState() {
   const offer = state.offers.find((item) => item.id === state.selectedOfferId);
   offerHeadingEl.textContent = offer ? offer.name : 'Choose an offer';
   offerMetaEl.textContent = offer ? `${offer.audience} · ${offer.angle}` : '';
-  pageHeadingEl.textContent = state.workingPage ? state.workingPage.name : 'Generate a landing page';
+  pageHeadingEl.textContent = state.workingPage ? getSidebarPageTitle(state.workingPage) : 'Generate a landing page';
   notesInputEl.value = state.notes;
   draftStatusEl.textContent = state.workingPage ? 'Draft loaded' : 'No draft yet';
   renderPreview();
