@@ -193,8 +193,8 @@ body {
 
 .preview-card {
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 14px;
+    grid-template-rows: auto 1fr;
+      gap: 14px;
   padding: 18px;
   min-height: 0;
 }

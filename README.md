@@ -2,6 +2,8 @@
 
 This repo is a self-contained hiring sandbox.
 
+![LaunchFlow Preview](images/preview.png)
+
 It is intentionally small and intentionally fake.
 
 It is designed to simulate one medium-hard AI productization slice without exposing any real company IP.
@@ -52,6 +54,12 @@ npm start
 Then open:
 
 `http://localhost:4173`
+
+## Deployment
+
+Deployed URL:
+
+`https://interview-sandbox.onrender.com/`
 
 There are no external services and no real AI providers in this sandbox.
 

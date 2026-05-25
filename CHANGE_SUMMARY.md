@@ -6,6 +6,12 @@
 3. Added unsaved-changes protection:
 	- `confirmIfDirty()` prompts before switching offer/page when there are unsaved edits.
 	- A `beforeunload` guard triggers the browser's native leave warning on refresh/close with unsaved edits.
+4. Improved sidebar page titles to prefer prompt-derived context (`promptTitle` or first draft-note line) with safe fallback behavior.
+5. Updated saved-page metadata display to show relative time (time-ago) with full date-time fallback.
+6. Refined the editor layout to a preview-first workspace with bottom notes composer, plus `Visit Preview` and `Copy HTML` actions.
+7. Added keyboard submit support so `Cmd+Enter` (or `Ctrl+Enter`) in notes triggers generate via form submit.
+8. Added saved-page deletion end-to-end (UI action + API path), including icon-based delete button and stale-id safety handling.
+9. Added offer icons in the offers list UI for faster visual scanning.
 
 ### AI Tools or Agents Used
 I had used co-pilot ( plan mode ) to understand the problem statement, the used co-pilot to fix the issues

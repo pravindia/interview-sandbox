@@ -445,15 +445,18 @@ async function copyHtml() {
 function visitPreview() {
   if (!state.previewHtml) return;
 
-  const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+  const blob = new Blob([state.previewHtml], { type: 'text/html;charset=utf-8' });
+  const previewUrl = URL.createObjectURL(blob);
+  const previewWindow = window.open(previewUrl, '_blank');
+
   if (!previewWindow) {
+    URL.revokeObjectURL(previewUrl);
     setNotice('Visit blocked by browser popup settings.');
     return;
   }
 
-  previewWindow.document.open();
-  previewWindow.document.write(state.previewHtml);
-  previewWindow.document.close();
+  // Revoke after open so the browser can finish loading the blob document.
+  window.setTimeout(() => URL.revokeObjectURL(previewUrl), 30000);
   setNotice('Opened preview in a new tab.');
 }
 
